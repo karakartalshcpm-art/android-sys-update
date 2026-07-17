@@ -1,4 +1,4 @@
-name: custom-frida-build
+name: custom-stealth-frida-build
 
 on:
   workflow_dispatch:
@@ -8,42 +8,38 @@ permissions:
   releases: write
 
 jobs:
-  build:
-    runs-on: ubuntu-latest
+  build_invisible_server:
+    runs-on: ubuntu-22.04
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup NDK
-        uses: nndg/setup-ndk@v1
-        with:
-          ndk-version: r25c
-
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.10'
-
-      - name: Install Tools
-        run: pip install meson ninja
-
-      - name: Patch Frida
+      - name: Clone Official Frida Source Code
         run: |
+          # Bilgisayarınızdaki 17.15.5 sürümüyle tam uyuşması için sürümü kilitliyoruz
           git clone --depth 1 --branch 17.15.5 https://github.com
+
+      - name: Install Official Linux and Android Compiler Tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential ninja-build python3-pip
+          pip3 install meson ninja
+
+      - name: Execute Automated Pure Stealth Word Patching
+        run: |
           cd frida/frida-core
+          # Hile korumasının taradığı tüm imza metinlerini sunucu üzerinde maskeliyoruz
           find . -type f \( -name "*.c" -o -name "*.h" -o -name "*.vala" -o -name "*.txt" \) -exec sed -i 's/frida/sys_core/g' {} +
           find . -type f \( -name "*.c" -o -name "*.h" -o -name "*.vala" -o -name "*.txt" \) -exec sed -i 's/Frida/SysCore/g' {} +
           find . -type f \( -name "*.c" -o -name "*.h" -o -name "*.vala" -o -name "*.txt" \) -exec sed -i 's/gum-js-loop/android_loop/g' {} +
           find . -type f \( -name "*.c" -o -name "*.h" -o -name "*.vala" -o -name "*.txt" \) -exec sed -i 's/gmain/sys_main/g' {} +
           find . -type f \( -name "*.c" -o -name "*.h" -o -name "*.vala" -o -name "*.txt" \) -exec sed -i 's/gdbus/sys_bus/g' {} +
 
-      - name: Compile
+      - name: Build Pure Android ARM64 Server Binary
         run: |
           cd frida
-          python releng/devkit.py server android-arm64 --output=../sys_daemon
+          # Harici betikler yerine doğrudan Makefile ana motoruyla derlemeyi tetikliyoruz
+          make server-android-arm64
 
-      - name: Upload
+      - name: Extract and Upload Invisible File to Your Repository Panel
         uses: actions/upload-artifact@v4
         with:
-          name: private-stealth-server
-          path: sys_daemon
+          name: private-stealth-frida-server-17.15.5
+          path: frida/build/frida-android-arm64/bin/frida-server
