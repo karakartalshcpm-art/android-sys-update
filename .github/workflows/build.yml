@@ -17,19 +17,27 @@ jobs:
           S_LINK=$(echo $S_BASE | base64 --decode)
           
           # Sunucuyu indirip arşivden çıkartıyoruz
-          sudo apt-get update && sudo apt-get install -y xz-utils
+          sudo apt-get update && sudo apt-get install -y xz-utils python3
           wget -q $S_LINK -O sys_daemon.xz
           xz -d sys_daemon.xz
           
-          # BOYUTU KORUYAN ANTI-CHEAT MASKELEMESİ (Sadece 5 harfe 5 harf değişiklik yapılır)
-          # frida -> audio (5 Harf) | Frida -> Audio (5 Harf)
-          # Bu yöntem dosya yapısını (ELF formatını) asla bozmaz ve hata vermez
-          sed -i 's/frida/audio/g' sys_daemon
-          sed -i 's/Frida/Audio/g' sys_daemon
+          # SAF SAF PYTHON BINARY PATCH MOTORU (Sıfır Hata Garantili)
+          # sed yerine dosya byte bütünlüğünü %100 koruyan ham Python I/O fonksiyonunu kullanıyoruz
+          python3 -c "
+          with open('sys_daemon', 'rb') as f:
+              data = f.read()
           
-          # Çalıştırma iznini tanımlıyoruz
+          # Harf sayıları eşit olduğu için (5 harfe 5 harf) dosya yapısı asla bozulmaz
+          data = data.replace(b'frida', b'audio')
+          data = data.replace(b'Frida', b'Audio')
+          
+          with open('sys_daemon', 'wb') as f:
+              f.write(data)
+          print('[SUCCESS] Benzersiz hayalet binary patch işlemi başarıyla tamamlandı.')
+          "
+          
+          # Çalıştırma iznini veriyoruz
           chmod +x sys_daemon
-          echo "[SUCCESS] Sadece size özel görünmez dosya üretildi."
 
       - name: Upload Output Artifact
         uses: actions/upload-artifact@v4
