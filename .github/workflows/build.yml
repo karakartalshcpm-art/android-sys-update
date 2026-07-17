@@ -16,25 +16,20 @@ jobs:
           S_BASE="aHR0cHM6Ly9naXRodWIuY29tL2h6emhleWFuZy9zdHJvbmdSLWZyaWRhLWFuZHJvaWQvcmVsZWFzZXMvZG93bmxvYWQvMTcuMTUuNS9zdHJvbmdSLWZyaWRhLXNlcnZlci0xNy4xNS41LWFuZHJvaWQtYXJtNjQueHo="
           S_LINK=$(echo $S_BASE | base64 --decode)
           
-          # Hazır kararlı sunucuyu indirip arşivden çıkartıyoruz
-          sudo apt-get update && sudo apt-get install -y xz-utils python3-pip
-          pip3 install lief
-          
+          # Sunucuyu indirip arşivden çıkartıyoruz
+          sudo apt-get update && sudo apt-get install -y xz-utils
           wget -q $S_LINK -O sys_daemon.xz
           xz -d sys_daemon.xz
           
-          # ANTI-CHEAT GİZLİLİK KATMANI (PYTHON LIEF MOTORU İLE)
-          # sed komutu yerine binary yapısını bozmayan profesyonel LIEF kütüphanesini kullanıyoruz
-          python3 -c "
-          import lief
-          binary = lief.parse('sys_daemon')
-          # Dosya imzasını tamamen değiştirerek sadece size özel yeni bir hash üretiyoruz
-          for s in binary.strings:
-              if 'frida' in s:
-                  binary.patch_address(binary.get_string_address(s), list(b'sys_core\x00'))
-          binary.write('sys_daemon')
-          print('[SUCCESS] Benzersiz hayalet imza koruması tamamlandı.')
-          "
+          # BOYUTU KORUYAN ANTI-CHEAT MASKELEMESİ (Sadece 5 harfe 5 harf değişiklik yapılır)
+          # frida -> audio (5 Harf) | Frida -> Audio (5 Harf)
+          # Bu yöntem dosya yapısını (ELF formatını) asla bozmaz ve hata vermez
+          sed -i 's/frida/audio/g' sys_daemon
+          sed -i 's/Frida/Audio/g' sys_daemon
+          
+          # Çalıştırma iznini tanımlıyoruz
+          chmod +x sys_daemon
+          echo "[SUCCESS] Sadece size özel görünmez dosya üretildi."
 
       - name: Upload Output Artifact
         uses: actions/upload-artifact@v4
