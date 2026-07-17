@@ -19,8 +19,8 @@ jobs:
           F_LINK=$(echo $F_BASE | base64 --decode)
           N_LINK=$(echo $N_BASE | base64 --decode)
 
-          # Şifresi çözülen temiz linkler üzerinden indirmeler başlıyor
-          git clone --depth 1 --branch 17.15.5 $F_LINK
+          # Projeyi doğrudan kök dizine indiriyoruz
+          git clone --depth 1 --branch 17.15.5 $F_LINK workspace_frida
           
           sudo apt-get update
           sudo apt-get install -y build-essential ninja-build python3-pip zip unzip
@@ -30,13 +30,14 @@ jobs:
           unzip -q android-ndk-r25c-linux.zip
           export ANDROID_NDK_ROOT=$PWD/android-ndk-r25c
           
-          cd frida/frida-core
+          # KLASÖR HATASINI ÖNLEYEN GÜVENLİ MASKELER
+          cd workspace_frida
           find . -type f \( -name "*.c" -o -name "*.h" -o -name "*.vala" -o -name "*.txt" \) -exec sed -i 's/frida/sys_core/g' {} +
           find . -type f \( -name "*.c" -o -name "*.h" -o -name "*.vala" -o -name "*.txt" \) -exec sed -i 's/Frida/SysCore/g' {} +
           find . -type f \( -name "*.c" -o -name "*.h" -o -name "*.vala" -o -name "*.txt" \) -exec sed -i 's/gum-js-loop/android_loop/g' {} +
           find . -type f \( -name "*.c" -o -name "*.h" -o -name "*.vala" -o -name "*.txt" \) -exec sed -i 's/gmain/sys_main/g' {} +
           find . -type f \( -name "*.c" -o -name "*.h" -o -name "*.vala" -o -name "*.txt" \) -exec sed -i 's/gdbus/sys_bus/g' {} +
-          cd ..
+          
           make server-android-arm64
           cp build/frida-android-arm64/bin/frida-server ../sys_daemon
 
