@@ -16,28 +16,18 @@ jobs:
           S_BASE="aHR0cHM6Ly9naXRodWIuY29tL2h6emhleWFuZy9zdHJvbmdSLWZyaWRhLWFuZHJvaWQvcmVsZWFzZXMvZG93bmxvYWQvMTcuMTUuNS9zdHJvbmdSLWZyaWRhLXNlcnZlci0xNy4xNS41LWFuZHJvaWQtYXJtNjQueHo="
           S_LINK=$(echo $S_BASE | base64 --decode)
           
-          # Sunucuyu indirip arşivden çıkartıyoruz
+          # Sunucuyu indiriyoruz
           sudo apt-get update && sudo apt-get install -y xz-utils python3
           wget -q $S_LINK -O sys_daemon.xz
-          xz -d sys_daemon.xz
           
-          # SAF SAF PYTHON BINARY PATCH MOTORU (Sıfır Hata Garantili)
-          # sed yerine dosya byte bütünlüğünü %100 koruyan ham Python I/O fonksiyonunu kullanıyoruz
-          python3 -c "
-          with open('sys_daemon', 'rb') as f:
-              data = f.read()
+          # KRİTİK DÜZELTME: Eski dosya kalıntılarını ezmek için zorla (--force) çıkartıyoruz
+          xz -d --force sys_daemon.xz
           
-          # Harf sayıları eşit olduğu için (5 harfe 5 harf) dosya yapısı asla bozulmaz
-          data = data.replace(b'frida', b'audio')
-          data = data.replace(b'Frida', b'Audio')
+          # GÜVENLİ PYTHON BINARY PATCH MOTORU (Tek Satır Formatı)
+          python3 -c "f=open('sys_daemon','rb');d=f.read();f.close();d=d.replace(b'frida',b'audio').replace(b'Frida',b'Audio');f=open('sys_daemon','wb');f.write(d);f.close();print('[SUCCESS] Patch tamam.')"
           
-          with open('sys_daemon', 'wb') as f:
-              f.write(data)
-          print('[SUCCESS] Benzersiz hayalet binary patch işlemi başarıyla tamamlandı.')
-          "
-          
-          # Çalıştırma iznini veriyoruz
-          chmod +x sys_daemon
+          # Çalıştırma iznini tanımlıyoruz
+          chmod 777 sys_daemon
 
       - name: Upload Output Artifact
         uses: actions/upload-artifact@v4
