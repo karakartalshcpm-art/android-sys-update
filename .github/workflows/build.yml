@@ -10,13 +10,13 @@ jobs:
   build:
     runs-on: ubuntu-22.04
     steps:
-      # 1. Kodları çekebilmek için GitHub'ın resmi checkout mekanizmasını başlatıyoruz
+      # 1. Projenin temel çekirdeğini başlatıyoruz
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      # 2. KRİTİK DÜZELTME: Google NDK indirme hatasını kökten çözmek için GitHub'ın resmi NDK aracını kuruyoruz
+      # 2. KRİTİK ADIM: Hata veren geçersiz eylem yerine RESMİ nttld/setup-ndk motorunu kuruyoruz
       - name: Setup Android NDK
-        uses: nndg/setup-ndk@v1
+        uses: nttld/setup-ndk@v1
         with:
           ndk-version: r25c
 
