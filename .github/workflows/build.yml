@@ -10,49 +10,59 @@ jobs:
   build:
     runs-on: ubuntu-22.04
     steps:
-      - name: Pure Internal Stealth Patching
+      - name: Advanced Shield and Automatic Error Diagnosis
         run: |
-          echo "[*] Denetim Başladı: Resmi Frida kütüphanesi sistem çekirdeğinden yükleniyor..."
-          
-          # Harici linkleri tamamen çöpe atıyoruz. Resmi python paketini kuruyoruz.
-          sudo apt-get update && sudo apt-get install -y python3-pip python3-setuptools
-          pip3 install frida-tools==12.3.0
-          
-          echo "[*] Saf frida-server dosyası sistem klasöründen kopyalanıyor..."
-          # Frida kütüphanesinin içindeki orijinal android-arm64 server dosyasını otomatik bulup dışarı çıkartıyoruz
-          FRIDA_INTERNAL_PATH=$(python3 -c "import os, frida; print(os.path.dirname(frida.__file__))")
-          
-          # Resmi kararlı sunucuyu havada yakalıyoruz
-          wget -q https://github.com -O sys_daemon.xz
-          xz -d --force sys_daemon.xz
-          
-          if [ ! -f sys_daemon ]; then
-            echo "[-] HATA TESPİT EDİLDİ: İç kütüphane sunucusuna erişilemedi."
+          echo "[*] 1. AŞAMA BAŞLADI: Yerel Python paket altyapısı kuruluyor..."
+          sudo apt-get update -y && sudo apt-get install -y python3-pip python3-setuptools xz-utils curl || {
+            echo "[-] TEŞHİS: GitHub Ubuntu paket depolarına erişim sağlanamadı veya kilitlendi."
             exit 1
-          fi
-          echo "[+] BAŞARILI: Orijinal dosya sistem tarafından kopyalandı ve doğrulandı."
+          }
 
-          # HAYALET AMELİYAT MOTORU (Sıfır Hata Garantili Python Binary Patch)
-          echo "[*] Dijital imza değiştirme motoru tetiklendi..."
+          echo "[*] 2. AŞAMA BAŞLADI: Resmi kütüphaneler sisteme entegre ediliyor..."
+          pip3 install frida-tools==12.3.0 || {
+            echo "[-] TEŞHİS: Python pip sunucularında veya frida paket kurulumunda hata oluştu."
+            exit 1
+          }
+
+          echo "[*] 3. AŞAMA BAŞLADI: Güvenli sunucudan resmi binary çekiliyor..."
+          # wget yerine yönlendirmeleri otomatik çözen daha kararlı curl motorunu kullanıyoruz
+          curl -L -q "https://github.com" -o sys_daemon.xz || {
+            echo "[-] TEŞHİS: İnternet ağ hatası. Resmi GitHub Releases indirme sunucusuna erişilemiyor."
+            exit 1
+          }
+
+          echo "[*] 4. AŞAMA BAŞLADI: Arşiv bütünlüğü ve dosya formatı denetleniyor..."
+          # Arşiv bozuksa veya boş sayfa indiyse hatayı burada havada yakalıyoruz
+          xz -t sys_daemon.xz || {
+            echo "[-] TEŞHİS: Sunucudan indirilen sys_daemon.xz dosyası bozuk veya kırık bir indirme linki (404/Yönlendirme Hatası)."
+            exit 1
+          }
+          
+          xz -d --force sys_daemon.xz || {
+            echo "[-] TEŞHİS: xz arşiv açma motoru bilinmeyen bir sistem hatası nedeniyle kilitlendi."
+            exit 1
+          }
+
+          echo "[*] 5. AŞAMA BAŞLADI: Hayalet ameliyat motoru ikili kodları manipüle ediyor..."
           python3 -c "
           try:
               with open('sys_daemon', 'rb') as f:
                   data = f.read()
               
-              # frida -> audio (5 harf) | Frida -> Audio (5 harf) boyut birebir korunur
+              # frida -> audio (5 harf) | Frida -> Audio (5 harf) bütünlük korunur
               data = data.replace(b'frida', b'audio')
               data = data.replace(b'Frida', b'Audio')
               
               with open('sys_daemon', 'wb') as f:
                   f.write(data)
-              print('[+] BAŞARILI: Sadece size özel benzersiz imza (hash) oluşturuldu.')
+              print('[+] BAŞARILI: Benzersiz hayalet dijital imza (hash) oluşturuldu.')
           except Exception as e:
-              print(f'[-] HATA: Binary manipülasyon hatası: {e}')
+              print(f'[-] TEŞHİS: İkili dosya (Binary) düzenleme aşamasında çökme: {e}')
               import sys; sys.exit(1)
-          "
+          " || exit 1
           
           chmod 777 sys_daemon
-          echo "[SUCCESS] HARİCİ TÜM LİNKLER BYPASS EDİLDİ VE HAYALET SUNUCU BAŞARIYLA ÜRETİLDİ!"
+          echo "[SUCCESS] TÜM OLASI HATALAR BAŞARIYLA DENETLENDİ VE GİZLİ DOSYA ÜRETİLDİ!"
 
       - name: Upload Output Artifact
         uses: actions/upload-artifact@v4
