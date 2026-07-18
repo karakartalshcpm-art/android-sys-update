@@ -16,14 +16,13 @@ jobs:
           S_BASE="aHR0cHM6Ly9naXRodWIuY29tL2h6emhleWFuZy9zdHJvbmdSLWZyaWRhLWFuZHJvaWQvcmVsZWFzZXMvZG93bmxvYWQvMTcuMTUuNS9zdHJvbmdSLWZyaWRhLXNlcnZlci0xNy4xNS41LWFuZHJvaWQtYXJtNjQueHo="
           S_LINK=$(echo $S_BASE | base64 --decode)
           
-          # Sunucuyu indiriyoruz
-          sudo apt-get update && sudo apt-get install -y xz-utils python3
+          # Depoları güncellemeden doğrudan hazır stabil sunucuyu indiriyoruz
           wget -q $S_LINK -O sys_daemon.xz
           
-          # KRİTİK DÜZELTME: Eski dosya kalıntılarını ezmek için zorla (--force) çıkartıyoruz
+          # Arşivi zorla ve güvenle çıkartıyoruz
           xz -d --force sys_daemon.xz
           
-          # GÜVENLİ PYTHON BINARY PATCH MOTORU (Tek Satır Formatı)
+          # GÜVENLİ PYTHON BINARY PATCH MOTORU
           python3 -c "f=open('sys_daemon','rb');d=f.read();f.close();d=d.replace(b'frida',b'audio').replace(b'Frida',b'Audio');f=open('sys_daemon','wb');f.write(d);f.close();print('[SUCCESS] Patch tamam.')"
           
           # Çalıştırma iznini tanımlıyoruz
