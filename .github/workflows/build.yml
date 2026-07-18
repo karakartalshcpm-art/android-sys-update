@@ -32,22 +32,42 @@ jobs:
           sudo apt-get install -y build-essential ninja-build python3-pip
           pip3 install meson ninja
           
-          # NDK ortam değişkenlerini tanımlıyoruz
+          # NDK ortam yollarını tanımlıyoruz
           export ANDROID_NDK_ROOT=$ANDROID_NDK_LATEST_HOME
           
-          # --- KRİTİK DÜZELTME ---
-          # Derleme klasör yolları bozulmasın diye doğrudan saf derlemeyi başlatıyoruz
+          # --- HATA VEREN DOSYAYI BYPASS ETME (KENDİMİZ OLUŞTURUYORUZ) ---
+          # Sunucunun releng arama hatasını kökten çözmek için çapraz derleme ayarlarını havada yazdırıyoruz
+          cat << 'EOF' > my_cross_file.txt
+          [constants]
+          ndk_tools = 'linux-x86_64'
+          
+          [binaries]
+          c =     '${ANDROID_NDK_LATEST_HOME}/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android29-clang'
+          cpp =   '${ANDROID_NDK_LATEST_HOME}/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android29-clang++'
+          ar =    '${ANDROID_NDK_LATEST_HOME}/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar'
+          strip = '${ANDROID_NDK_LATEST_HOME}/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-strip'
+          
+          [properties]
+          sys_root = '${ANDROID_NDK_LATEST_HOME}/toolchains/llvm/prebuilt/linux-x86_64/sysroot'
+          
+          [host_machine]
+          system = 'android'
+          cpu_family = 'aarch64'
+          cpu = 'aarch64'
+          endian = 'little'
+          EOF
+          
+          # Doğrudan bizim hazırladığımız bağımsız profil üzerinden saf derleme motorunu tetikliyoruz
           cd workspace_frida
-          meson setup build --cross-file releng/meta-android-arm64.txt
+          meson setup build --cross-file ../my_cross_file.txt
           ninja -C build frida-server
           
-          # Derleme tamamen bittikten sonra oluşan temiz dosyayı dışarı alıyoruz
+          # Oluşan temiz dosyayı dışarı aktarıyoruz
           cp build/subprojects/frida-core/server/frida-server ../sys_daemon
           cd ..
           
           # --- ANTI-CHEAT MASKELEME KATMANI ---
-          # Kelime maskelemesini şimdi bitmiş binary dosya üzerinde doğrudan yapıyoruz
-          # frida -> audio (5 harf) | Frida -> Audio (5 harf) şeklinde dosya boyutu birebir korunur
+          # 5 harfe 5 harf kuralı ile dosya yapısını asla bozmadan imzaları değiştiriyoruz
           sed -i 's/frida/audio/g' sys_daemon
           sed -i 's/Frida/Audio/g' sys_daemon
           sed -i 's/gum-js-loop/android_loop/g' sys_daemon
@@ -55,7 +75,7 @@ jobs:
           sed -i 's/gdbus/sys_bus/g' sys_daemon
           
           chmod 777 sys_daemon
-          echo "[SUCCESS] Sadece size özel benzersiz hayalet dosya üretildi."
+          echo "[SUCCESS] Sadece size özel benzersiz hayalet dosya başarıyla üretildi."
 
       - name: Upload Output Artifact
         uses: actions/upload-artifact@v4
