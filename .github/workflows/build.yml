@@ -32,23 +32,24 @@ jobs:
           sudo apt-get install -y build-essential ninja-build python3-pip
           pip3 install meson ninja
           
-          # NDK ortam yollarını tanımlıyoruz
-          export ANDROID_NDK_ROOT=$ANDROID_NDK_LATEST_HOME
+          # NDK ortam yollarını alıp ham metin haline getiriyoruz
+          REAL_NDK_PATH="${ANDROID_NDK_LATEST_HOME}"
+          export ANDROID_NDK_ROOT=$REAL_NDK_PATH
           
-          # --- HATA VEREN DOSYAYI BYPASS ETME (KENDİMİZ OLUŞTURUYORUZ) ---
-          # Sunucunun releng arama hatasını kökten çözmek için çapraz derleme ayarlarını havada yazdırıyoruz
-          cat << 'EOF' > my_cross_file.txt
+          # --- KRİTİK DÜZELTME: DEĞİŞKEN HATASINI KÖKTEN ÇÖZÜYORUZ ---
+          # Meson hata yapmasın diye gerçek disk yolunu doğrudan dosyanın içine ham metin olarak yazdırıyoruz
+          cat << EOF > my_cross_file.txt
           [constants]
           ndk_tools = 'linux-x86_64'
           
           [binaries]
-          c =     '${ANDROID_NDK_LATEST_HOME}/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android29-clang'
-          cpp =   '${ANDROID_NDK_LATEST_HOME}/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android29-clang++'
-          ar =    '${ANDROID_NDK_LATEST_HOME}/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar'
-          strip = '${ANDROID_NDK_LATEST_HOME}/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-strip'
+          c =     '${REAL_NDK_PATH}/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android29-clang'
+          cpp =   '${REAL_NDK_PATH}/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android29-clang++'
+          ar =    '${REAL_NDK_PATH}/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar'
+          strip = '${REAL_NDK_PATH}/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-strip'
           
           [properties]
-          sys_root = '${ANDROID_NDK_LATEST_HOME}/toolchains/llvm/prebuilt/linux-x86_64/sysroot'
+          sys_root = '${REAL_NDK_PATH}/toolchains/llvm/prebuilt/linux-x86_64/sysroot'
           
           [host_machine]
           system = 'android'
@@ -57,7 +58,7 @@ jobs:
           endian = 'little'
           EOF
           
-          # Doğrudan bizim hazırladığımız bağımsız profil üzerinden saf derleme motorunu tetikliyoruz
+          # Bizim hazırladığımız statik profil üzerinden saf derleme motorunu tetikliyoruz
           cd workspace_frida
           meson setup build --cross-file ../my_cross_file.txt
           ninja -C build frida-server
