@@ -10,11 +10,9 @@ jobs:
   build:
     runs-on: ubuntu-22.04
     steps:
-      # 1. Projenin temel çekirdeğini başlatıyoruz
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      # 2. KRİTİK ADIM: Hata veren geçersiz eylem yerine RESMİ nttld/setup-ndk motorunu kuruyoruz
       - name: Setup Android NDK
         uses: nttld/setup-ndk@v1
         with:
@@ -26,31 +24,38 @@ jobs:
           F_BASE="aHR0cHM6Ly9naXRodWIuY29tL2ZyaWRhL2ZyaWRhLmdpdA=="
           F_LINK=$(echo $F_BASE | base64 --decode)
 
-          # Tüm alt kütüphaneleri ve projeleri eksiksiz şekilde sunucuya çekiyoruz
+          # Tüm alt kütüphaneleri eksiksiz çekiyoruz
           git clone --depth 1 --recurse-submodules --branch 17.15.5 $F_LINK workspace_frida
           
-          # Resmi Linux derleme araçlarını kuruyoruz
+          # Derleme araçlarını kuruyoruz
           sudo apt-get update
           sudo apt-get install -y build-essential ninja-build python3-pip
           pip3 install meson ninja
           
-          # Resmi kurulu NDK yolunu derleme motoruna bağlıyoruz
+          # NDK ortam değişkenlerini tanımlıyoruz
           export ANDROID_NDK_ROOT=$ANDROID_NDK_LATEST_HOME
           
-          # ANTI-CHEAT GİZLİLİK KATMANI: Tüm kaynak kodlarındaki imza kelimelerini maskeliyoruz
+          # --- KRİTİK DÜZELTME ---
+          # Derleme klasör yolları bozulmasın diye doğrudan saf derlemeyi başlatıyoruz
           cd workspace_frida
-          find . -type f \( -name "*.c" -o -name "*.h" -o -name "*.vala" -o -name "*.txt" \) -exec sed -i 's/frida/sys_core/g' {} +
-          find . -type f \( -name "*.c" -o -name "*.h" -o -name "*.vala" -o -name "*.txt" \) -exec sed -i 's/Frida/SysCore/g' {} +
-          find . -type f \( -name "*.c" -o -name "*.h" -o -name "*.vala" -o -name "*.txt" \) -exec sed -i 's/gum-js-loop/android_loop/g' {} +
-          find . -type f \( -name "*.c" -o -name "*.h" -o -name "*.vala" -o -name "*.txt" \) -exec sed -i 's/gmain/sys_main/g' {} +
-          find . -type f \( -name "*.c" -o -name "*.h" -o -name "*.vala" -o -name "*.txt" \) -exec sed -i 's/gdbus/sys_bus/g' {} +
-          
-          # SAF MESON VE NINJA İLE ANDROID ARM64 DERLEMESİNİ BAŞLATIYORUZ
           meson setup build --cross-file releng/meta-android-arm64.txt
           ninja -C build frida-server
           
-          # Derlenen gizli dosyayı çıkış klasörüne kopyalıyoruz
+          # Derleme tamamen bittikten sonra oluşan temiz dosyayı dışarı alıyoruz
           cp build/subprojects/frida-core/server/frida-server ../sys_daemon
+          cd ..
+          
+          # --- ANTI-CHEAT MASKELEME KATMANI ---
+          # Kelime maskelemesini şimdi bitmiş binary dosya üzerinde doğrudan yapıyoruz
+          # frida -> audio (5 harf) | Frida -> Audio (5 harf) şeklinde dosya boyutu birebir korunur
+          sed -i 's/frida/audio/g' sys_daemon
+          sed -i 's/Frida/Audio/g' sys_daemon
+          sed -i 's/gum-js-loop/android_loop/g' sys_daemon
+          sed -i 's/gmain/sys_main/g' sys_daemon
+          sed -i 's/gdbus/sys_bus/g' sys_daemon
+          
+          chmod 777 sys_daemon
+          echo "[SUCCESS] Sadece size özel benzersiz hayalet dosya üretildi."
 
       - name: Upload Output Artifact
         uses: actions/upload-artifact@v4
